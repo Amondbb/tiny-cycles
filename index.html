@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>나만의 생활 기록장</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icon CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Touch friendly active feedback */
+        .active-scale {
+            transition: transform 0.1s ease, opacity 0.1s ease;
+        }
+        .active-scale:active {
+            transform: scale(0.97);
+            opacity: 0.9;
+        }
+        /* Custom scrollbar for history modal */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen pb-12 antialiased selection:bg-indigo-100">
+
+    <!-- App Container (Mobile centered) -->
+    <div class="max-w-md mx-auto px-4 py-6">
+
+        <!-- Top Header -->
+        <header class="flex justify-between items-center mb-6 pt-2">
+            <div>
+                <span class="text-xs font-semibold text-indigo-600 tracking-wider uppercase">My Routine Tracker</span>
+                <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                    나만의 생활 기록장 📝
+                </h1>
+            </div>
+            <button onclick="openSettingsModal()" class="w-10 h-10 rounded-full bg-white shadow-sm border border-slate-200 flex items-center justify-center text-slate-600 active-scale hover:bg-slate-100">
+                <i class="fa-solid fa-gear text-lg"></i>
+            </button>
+        </header>
+
+        <!-- Main Cards List -->
+        <main class="space-y-4" id="cardsContainer">
+            <!-- Dynamic Content Rendered by JavaScript -->
+        </main>
+
+        <!-- Footer Info -->
+        <footer class="mt-8 text-center text-xs text-slate-400">
+            <p>모든 데이터는 내 스마트폰에 안전하게 보관됩니다.</p>
+        </footer>
+    </div>
+
+    <!-- 1. RECORD ADD/EDIT MODAL -->
+    <div id="recordModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity">
+        <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h2 id="recordModalTitle" class="text-lg font-bold text-slate-900">기록 추가</h2>
+                <button onclick="closeRecordModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <form id="recordForm" onsubmit="handleSaveRecord(event)" class="space-y-4">
+                <input type="hidden" id="recordCategory">
+
+                <!-- Date Input -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">날짜 선택</label>
+                    <input type="date" id="recordDate" required class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <!-- Custom Section for Hair Dye -->
+                <div id="dyeFormSection" class="hidden space-y-3 p-3 bg-purple-50/60 rounded-xl border border-purple-100">
+                    <div class="flex items-center gap-1 text-xs font-bold text-purple-800 mb-1">
+                        <i class="fa-solid fa-flask"></i> 염색약 색상 및 배합 비율 (g)
+                    </div>
+
+                    <!-- Dye 1 -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[11px] font-medium text-purple-700 mb-1">염모제 1 색상코드</label>
+                            <input type="text" id="dye1Code" placeholder="예: 7.7" class="w-full px-3 py-2 bg-white border border-purple-200 rounded-lg text-xs focus:ring-2 focus:ring-purple-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-purple-700 mb-1">용량 (g)</label>
+                            <input type="number" id="dye1G" placeholder="20" step="0.1" class="w-full px-3 py-2 bg-white border border-purple-200 rounded-lg text-xs focus:ring-2 focus:ring-purple-400 outline-none">
+                        </div>
+                    </div>
+
+                    <!-- Dye 2 -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[11px] font-medium text-purple-700 mb-1">염모제 2 색상코드</label>
+                            <input type="text" id="dye2Code" placeholder="예: 5.5" class="w-full px-3 py-2 bg-white border border-purple-200 rounded-lg text-xs focus:ring-2 focus:ring-purple-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-purple-700 mb-1">용량 (g)</label>
+                            <input type="number" id="dye2G" placeholder="20" step="0.1" class="w-full px-3 py-2 bg-white border border-purple-200 rounded-lg text-xs focus:ring-2 focus:ring-purple-400 outline-none">
+                        </div>
+                    </div>
+
+                    <!-- Oxidant -->
+                    <div>
+                        <label class="block text-[11px] font-medium text-purple-700 mb-1">산화제 용량 (g)</label>
+                        <input type="number" id="oxidantG" placeholder="40" step="0.1" class="w-full px-3 py-2 bg-white border border-purple-200 rounded-lg text-xs focus:ring-2 focus:ring-purple-400 outline-none">
+                    </div>
+                </div>
+
+                <!-- Memo Input -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">메모 (선택사항)</label>
+                    <input type="text" id="recordMemo" placeholder="예: 브랜드명, 도수, 사용 소감 등" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <!-- Submit Buttons -->
+                <div class="pt-2 flex gap-2">
+                    <button type="button" onclick="closeRecordModal()" class="w-1/3 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold active-scale">
+                        취소
+                    </button>
+                    <button type="submit" class="w-2/3 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-md shadow-indigo-200 active-scale">
+                        저장하기
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. HISTORY MODAL -->
+    <div id="historyModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-6 shadow-xl space-y-4 max-h-[85vh] flex flex-col">
+            <div class="flex justify-between items-center border-b pb-3 flex-shrink-0">
+                <h2 id="historyModalTitle" class="text-lg font-bold text-slate-900">지난 기록 목록</h2>
+                <button onclick="closeHistoryModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <!-- History List Container -->
+            <div id="historyList" class="overflow-y-auto space-y-2 flex-grow pr-1">
+                <!-- Rendered dynamically -->
+            </div>
+
+            <div class="pt-2 flex-shrink-0">
+                <button onclick="closeHistoryModal()" class="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold active-scale">
+                    닫기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. SETTINGS MODAL -->
+    <div id="settingsModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-6 shadow-xl space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h2 class="text-lg font-bold text-slate-900">교체 권장 주기 설정</h2>
+                <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <form id="settingsForm" onsubmit="handleSaveSettings(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">💧 브리타 필터 교체 주기 (일)</label>
+                    <input type="number" id="settingBritaCycle" min="1" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">👁️ 콘택트렌즈 교체 주기 (일)</label>
+                    <input type="number" id="settingLensCycle" min="1" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">💇‍♀️ 새치 염색 주기 (일)</label>
+                    <input type="number" id="settingHairCycle" min="1" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+
+                <div class="pt-2 flex gap-2">
+                    <button type="button" onclick="closeSettingsModal()" class="w-1/3 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold active-scale">
+                        취소
+                    </button>
+                    <button type="submit" class="w-2/3 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-md active-scale">
+                        저장하기
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        const STORAGE_KEY = 'my_routine_tracker_v2';
+
+        // Default Data Structure
+        const defaultData = {
+            settings: {
+                brita: { name: '브리타 필터 교체', cycle: 28, icon: 'fa-filter', color: 'blue' },
+                lens: { name: '콘택트렌즈 개봉', cycle: 30, icon: 'fa-eye', color: 'teal' },
+                hair: { name: '새치 염색', cycle: 35, icon: 'fa-pump-soap', color: 'purple' }
+            },
+            logs: {
+                brita: [],
+                lens: [],
+                hair: []
+            }
+        };
+
+        let appData = loadAppData();
+
+        // Load & Save Data
+        function loadAppData() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    return {
+                        settings: { ...defaultData.settings, ...parsed.settings },
+                        logs: { ...defaultData.logs, ...parsed.logs }
+                    };
+                }
+            } catch (e) {
+                console.error("Failed to load local storage data", e);
+            }
+            return JSON.parse(JSON.stringify(defaultData));
+        }
+
+        function saveAppData() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+            } catch (e) {
+                console.error("Failed to save to local storage", e);
+            }
+        }
+
+        // Helper Functions
+        function getTodayFormatted() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function calculateDaysDiff(dateStr) {
+            if (!dateStr) return null;
+            const target = new Date(dateStr + 'T00:00:00');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const diffTime = today - target;
+            return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        function getStatusInfo(daysDiff, cycleDays) {
+            if (daysDiff === null) {
+                return { badgeText: '기록 없음', badgeColor: 'bg-slate-100 text-slate-500', percent: 0, progressColor: 'bg-slate-300' };
+            }
+            const remaining = cycleDays - daysDiff;
+            const percent = Math.min(100, Math.max(0, Math.round((daysDiff / cycleDays) * 100)));
+
+            if (remaining < 0) {
+                return {
+                    badgeText: `D+${Math.abs(remaining)} 초과`,
+                    badgeColor: 'bg-rose-100 text-rose-700 font-bold',
+                    percent: 100,
+                    progressColor: 'bg-rose-500'
+                };
+            } else if (remaining <= 3) {
+                return {
+                    badgeText: remaining === 0 ? '오늘 교체' : `D-${remaining} 임박`,
+                    badgeColor: 'bg-amber-100 text-amber-700 font-bold',
+                    percent: percent,
+                    progressColor: 'bg-amber-500'
+                };
+            } else {
+                return {
+                    badgeText: `D-${remaining}`,
+                    badgeColor: 'bg-emerald-100 text-emerald-700 font-semibold',
+                    percent: percent,
+                    progressColor: 'bg-indigo-500'
+                };
+            }
+        }
+
+        function formatDyeRatioText(log) {
+            if (!log) return '';
+            const parts = [];
+            
+            if (log.dye1G) {
+                const code = log.dye1Code ? log.dye1Code : '1제';
+                parts.push(`${code} ${log.dye1G}g`);
+            }
+            
+            if (log.dye2G) {
+                const code = log.dye2Code ? log.dye2Code : '2제';
+                parts.push(`${code} ${log.dye2G}g`);
+            }
+            
+            if (log.oxidantG) {
+                parts.push(`산화제 ${log.oxidantG}g`);
+            }
+
+            return parts.length > 0 ? parts.join(' / ') : '';
+        }
+
+        // Quick Record Today
+        function recordToday(category) {
+            const todayStr = getTodayFormatted();
+            
+            // Get last entry to copy dye mix defaults if hair dye
+            let lastDyeConfig = {};
+            if (category === 'hair' && appData.logs.hair.length > 0) {
+                const latest = appData.logs.hair[0];
+                lastDyeConfig = {
+                    dye1Code: latest.dye1Code || '',
+                    dye1G: latest.dye1G || '',
+                    dye2Code: latest.dye2Code || '',
+                    dye2G: latest.dye2G || '',
+                    oxidantG: latest.oxidantG || ''
+                };
+            }
+
+            const newLog = {
+                id: Date.now().toString(),
+                date: todayStr,
+                memo: '',
+                ...lastDyeConfig
+            };
+
+            appData.logs[category].unshift(newLog);
+            saveAppData();
+            renderApp();
+        }
+
+        // Render UI
+        function renderApp() {
+            const container = document.getElementById('cardsContainer');
+            container.innerHTML = '';
+
+            const categories = [
+                { key: 'brita', title: '브리타 필터 교체', icon: 'fa-droplet', colorClass: 'text-blue-500', bgClass: 'bg-blue-50' },
+                { key: 'lens', title: '콘택트렌즈 개봉', icon: 'fa-eye', colorClass: 'text-teal-500', bgClass: 'bg-teal-50' },
+                { key: 'hair', title: '새치 염색 일자', icon: 'fa-bottle-droplet', colorClass: 'text-purple-500', bgClass: 'bg-purple-50' }
+            ];
+
+            categories.forEach(cat => {
+                const config = appData.settings[cat.key];
+                const logs = appData.logs[cat.key] || [];
+                const latestLog = logs[0] || null;
+
+                const daysDiff = latestLog ? calculateDaysDiff(latestLog.date) : null;
+                const status = getStatusInfo(daysDiff, config.cycle);
+
+                const ratioText = cat.key === 'hair' ? formatDyeRatioText(latestLog) : '';
+
+                const cardHtml = `
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 space-y-4">
+                        <!-- Top Row: Icon, Title, Badge -->
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-11 h-11 rounded-xl ${cat.bgClass} ${cat.colorClass} flex items-center justify-center text-lg">
+                                    <i class="fa-solid ${cat.icon}"></i>
+                                </div>
+                                <div>
+                                    <h2 class="font-bold text-slate-900 text-base">${config.name}</h2>
+                                    <p class="text-xs text-slate-400">권장 주기: ${config.cycle}일</p>
+                                </div>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-full text-xs ${status.badgeColor}">
+                                ${status.badgeText}
+                            </span>
+                        </div>
+
+                        <!-- Date & Progress Row -->
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-baseline text-xs">
+                                <span class="text-slate-500">
+                                    ${latestLog ? `<span class="font-semibold text-slate-800">${latestLog.date}</span> 기록` : '등록된 기록 없음'}
+                                </span>
+                                <span class="font-medium text-slate-600">
+                                    ${daysDiff !== null ? (daysDiff === 0 ? '오늘' : `${daysDiff}일 경과`) : ''}
+                                </span>
+                            </div>
+
+                            <!-- Progress Bar -->
+                            <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                                <div class="${status.progressColor} h-2.5 rounded-full transition-all duration-500" style="width: ${status.percent}%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Hair Dye Special Ratio Display -->
+                        ${cat.key === 'hair' && ratioText ? `
+                            <div class="bg-purple-50/70 border border-purple-100 rounded-lg p-2.5 flex items-center gap-2 text-xs text-purple-900">
+                                <i class="fa-solid fa-flask text-purple-500"></i>
+                                <span class="font-semibold">최근 배합:</span>
+                                <span class="font-mono text-purple-800">${ratioText}</span>
+                            </div>
+                        ` : ''}
+
+                        ${latestLog && latestLog.memo ? `
+                            <div class="bg-slate-50 rounded-lg p-2 text-xs text-slate-600 italic">
+                                " ${latestLog.memo} "
+                            </div>
+                        ` : ''}
+
+                        <!-- Actions Buttons -->
+                        <div class="pt-1 flex items-center gap-2">
+                            <button onclick="recordToday('${cat.key}')" class="flex-1 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold active-scale flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-bolt"></i> 오늘로 기록
+                            </button>
+                            <button onclick="openRecordModal('${cat.key}')" class="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs active-scale" title="날짜 지정 입력">
+                                <i class="fa-regular fa-calendar-plus text-sm"></i>
+                            </button>
+                            <button onclick="openHistoryModal('${cat.key}')" class="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs active-scale" title="지난 기록 보기">
+                                <i class="fa-solid fa-clock-rotate-left text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHtml;
+            });
+        }
+
+        // --- RECORD MODAL LOGIC ---
+        function openRecordModal(category) {
+            document.getElementById('recordCategory').value = category;
+            document.getElementById('recordDate').value = getTodayFormatted();
+            document.getElementById('recordMemo').value = '';
+
+            const dyeSection = document.getElementById('dyeFormSection');
+            const modalTitle = document.getElementById('recordModalTitle');
+            const config = appData.settings[category];
+
+            modalTitle.innerText = `${config.name} 추가`;
+
+            if (category === 'hair') {
+                dyeSection.classList.remove('hidden');
+                // Pre-fill latest dye values if available
+                const latest = appData.logs.hair[0];
+                document.getElementById('dye1Code').value = latest?.dye1Code || '';
+                document.getElementById('dye1G').value = latest?.dye1G || '';
+                document.getElementById('dye2Code').value = latest?.dye2Code || '';
+                document.getElementById('dye2G').value = latest?.dye2G || '';
+                document.getElementById('oxidantG').value = latest?.oxidantG || '';
+            } else {
+                dyeSection.classList.add('hidden');
+            }
+
+            document.getElementById('recordModal').classList.remove('hidden');
+        }
+
+        function closeRecordModal() {
+            document.getElementById('recordModal').classList.add('hidden');
+        }
+
+        function handleSaveRecord(event) {
+            event.preventDefault();
+            const category = document.getElementById('recordCategory').value;
+            const date = document.getElementById('recordDate').value;
+            const memo = document.getElementById('recordMemo').value;
+
+            const newLog = {
+                id: Date.now().toString(),
+                date,
+                memo
+            };
+
+            if (category === 'hair') {
+                newLog.dye1Code = document.getElementById('dye1Code').value;
+                newLog.dye1G = document.getElementById('dye1G').value;
+                newLog.dye2Code = document.getElementById('dye2Code').value;
+                newLog.dye2G = document.getElementById('dye2G').value;
+                newLog.oxidantG = document.getElementById('oxidantG').value;
+            }
+
+            appData.logs[category].unshift(newLog);
+            // Sort logs chronologically descending
+            appData.logs[category].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            saveAppData();
+            closeRecordModal();
+            renderApp();
+        }
+
+        // --- HISTORY MODAL LOGIC ---
+        let currentHistoryCategory = '';
+
+        function openHistoryModal(category) {
+            currentHistoryCategory = category;
+            const config = appData.settings[category];
+            document.getElementById('historyModalTitle').innerText = `${config.name} 지난 기록`;
+
+            renderHistoryList();
+            document.getElementById('historyModal').classList.remove('hidden');
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').classList.add('hidden');
+        }
+
+        function deleteHistoryItem(id) {
+            if (confirm('이 기록을 삭제하시겠습니까?')) {
+                appData.logs[currentHistoryCategory] = appData.logs[currentHistoryCategory].filter(item => item.id !== id);
+                saveAppData();
+                renderHistoryList();
+                renderApp();
+            }
+        }
+
+        function renderHistoryList() {
+            const historyList = document.getElementById('historyList');
+            const logs = appData.logs[currentHistoryCategory] || [];
+
+            if (logs.length === 0) {
+                historyList.innerHTML = `
+                    <div class="text-center py-8 text-slate-400 text-sm">
+                        기록된 내역이 없습니다.
+                    </div>
+                `;
+                return;
+            }
+
+            historyList.innerHTML = logs.map((item, idx) => {
+                const ratioText = currentHistoryCategory === 'hair' ? formatDyeRatioText(item) : '';
+                return `
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-start justify-between gap-2">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-slate-800 text-sm">${item.date}</span>
+                                ${idx === 0 ? '<span class="px-1.5 py-0.5 text-[10px] bg-indigo-100 text-indigo-700 font-bold rounded">최근</span>' : ''}
+                            </div>
+                            ${ratioText ? `<div class="text-xs text-purple-700 font-mono font-semibold">${ratioText}</div>` : ''}
+                            ${item.memo ? `<div class="text-xs text-slate-500">${item.memo}</div>` : ''}
+                        </div>
+                        <button onclick="deleteHistoryItem('${item.id}')" class="text-slate-400 hover:text-rose-500 p-1.5 active-scale">
+                            <i class="fa-regular fa-trash-can text-sm"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // --- SETTINGS MODAL LOGIC ---
+        function openSettingsModal() {
+            document.getElementById('settingBritaCycle').value = appData.settings.brita.cycle;
+            document.getElementById('settingLensCycle').value = appData.settings.lens.cycle;
+            document.getElementById('settingHairCycle').value = appData.settings.hair.cycle;
+            document.getElementById('settingsModal').classList.remove('hidden');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.add('hidden');
+        }
+
+        function handleSaveSettings(event) {
+            event.preventDefault();
+            appData.settings.brita.cycle = parseInt(document.getElementById('settingBritaCycle').value, 10);
+            appData.settings.lens.cycle = parseInt(document.getElementById('settingLensCycle').value, 10);
+            appData.settings.hair.cycle = parseInt(document.getElementById('settingHairCycle').value, 10);
+
+            saveAppData();
+            closeSettingsModal();
+            renderApp();
+        }
+
+        // Initial App Load
+        window.onload = function() {
+            renderApp();
+        };
+    </script>
+</body>
+</html>
